@@ -1,0 +1,106 @@
+datasource db {
+  provider = "postgresql"
+  url      = "postgresql://postgres:password@127.0.0.1:5432/learntoaction"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// --------------------------------------------------------
+// CORE TENANCY (Module 1)
+// --------------------------------------------------------
+
+model Workspace {
+  id        String   @id @default(uuid())
+  name      String
+  // Single-tenant MVP: just one Admin per workspace for now
+  users     User[]
+
+  // Content
+  worksheets Worksheet[]
+  fields     Field[]
+  responses  Response[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  
+  // Tenancy
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id])
+
+  createdAt    DateTime  @default(now())
+}
+
+// --------------------------------------------------------
+// CONTENT ENGINE
+// --------------------------------------------------------
+
+model Worksheet {
+  id          String @id @default(uuid())
+  title       String
+  slug        String // Unique per workspace
+  
+  // JSON Contract
+  // Stores the ordered list of blocks: [ { type: "text", content: "..." }, { type: "input", field_key: "..." } ]
+  schema      Json   @default("[]") 
+
+  status      String @default("DRAFT") // DRAFT, PUBLISHED
+
+  // Tenancy
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  
+  responses   Response[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([workspaceId, slug])
+}
+
+model Field {
+  id          String @id @default(uuid())
+  key         String // e.g., "contact.first_name"
+  label       String
+
+  // Tenancy
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+
+  createdAt   DateTime @default(now())
+
+  @@unique([workspaceId, key])
+}
+
+// --------------------------------------------------------
+// STUDENT RUNTIME
+// --------------------------------------------------------
+
+model Response {
+  id          String @id @default(uuid())
+  
+  // Link to Worksheet
+  worksheetId String
+  worksheet   Worksheet @relation(fields: [worksheetId], references: [id])
+
+  // Tenancy (Denormalized for easier RLS/Access Control later)
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+
+  // Content
+  data        Json     @default("{}") // The answers: { "contact.first_name": "John" }
+  progress    Int      @default(0)    // 0-100
+  
+  // Identity (Anonymous for now, or linked to Student table later)
+  studentId   String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

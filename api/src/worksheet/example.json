@@ -1,0 +1,23 @@
+{
+    "version": 1,
+    "blocks": [
+        {
+            "id": "b1",
+            "type": "heading",
+            "content": "Welcome to your first Worksheet",
+            "level": "h1"
+        },
+        {
+            "id": "b2",
+            "type": "text",
+            "content": "Please answer the following questions honestly."
+        },
+        {
+            "id": "b3",
+            "type": "input",
+            "label": "What is your biggest goal?",
+            "field_key": "goal.primary",
+            "required": true
+        }
+    ]
+}
