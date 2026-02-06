@@ -10,9 +10,20 @@ export const Builder = () => {
     const [blocks, setBlocks] = useState<Block[]>([]);
     const [saving, setSaving] = useState(false);
 
+    // Polyfill-like behavior for UUIDs in non-secure contexts (HTTP)
+    const generateUUID = () => {
+        if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+            return crypto.randomUUID();
+        }
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    };
+
     const addBlock = (type: Block['type']) => {
         const newBlock: Block = {
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             type,
             content: type === 'heading' ? 'New Heading' : type === 'text' ? 'New text content' : undefined,
             label: type === 'input' ? 'New Question' : undefined,
