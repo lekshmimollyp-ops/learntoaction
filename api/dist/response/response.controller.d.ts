@@ -6,9 +6,15 @@ export declare class ResponseController {
         success: boolean;
         responseId: string | null | undefined;
     }>;
-    getStats(slug: string): Promise<{
+    getStats(slug: string, page?: number, limit?: number): Promise<{
         title: any;
+        blocks: any;
         totalResponses: number;
         recent: any[];
+        meta: {
+            total: number;
+            page: number;
+            lastPage: number;
+        };
     }>;
 }

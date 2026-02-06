@@ -116,7 +116,11 @@ export const LoginPage = () => {
                             </div>
 
                             <div className="flex items-center justify-end">
-                                <button type="button" className="text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors">
+                                <button
+                                    type="button"
+                                    onClick={() => alert("Please contact support to reset your password.")}
+                                    className="text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
+                                >
                                     Forgot password?
                                 </button>
                             </div>

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, NotFoundException, BadRequestException, Query } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { z } from 'zod';
 import { WorksheetContentSchema } from './worksheet.schema';
@@ -44,15 +44,39 @@ export class WorksheetController {
     }
 
     @Get()
-    async listWorksheets() {
+    async listWorksheets(
+        @Query('page') page = 1,
+        @Query('limit') limit = 10
+    ) {
         const WORKSPACE_ID = '00000000-0000-0000-0000-000000000000';
+        const p = Number(page) || 1;
+        const l = Number(limit) || 10;
+        const offset = (p - 1) * l;
 
-        const result = await this.prisma.client.query(
-            `SELECT id, title, slug, "updatedAt" FROM "Worksheet" WHERE "workspaceId" = $1 ORDER BY "updatedAt" DESC`,
+        // 1. Get Total Count
+        const countRes = await this.prisma.client.query(
+            `SELECT COUNT(*) as total FROM "Worksheet" WHERE "workspaceId" = $1`,
             [WORKSPACE_ID]
         );
+        const total = parseInt(countRes.rows[0].total);
 
-        return result.rows;
+        // 2. Get Paginated Data
+        const result = await this.prisma.client.query(
+            `SELECT id, title, slug, "updatedAt" FROM "Worksheet" 
+             WHERE "workspaceId" = $1 
+             ORDER BY "updatedAt" DESC
+             LIMIT $2 OFFSET $3`,
+            [WORKSPACE_ID, l, offset]
+        );
+
+        return {
+            data: result.rows,
+            meta: {
+                total,
+                page: p,
+                lastPage: Math.ceil(total / l)
+            }
+        };
     }
 
     @Get(':slug')

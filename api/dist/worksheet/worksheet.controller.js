@@ -71,10 +71,25 @@ let WorksheetController = class WorksheetController {
        RETURNING *`, [title, slug, JSON.stringify(validation.data), WORKSPACE_ID]);
         return result.rows[0];
     }
-    async listWorksheets() {
+    async listWorksheets(page = 1, limit = 10) {
         const WORKSPACE_ID = '00000000-0000-0000-0000-000000000000';
-        const result = await this.prisma.client.query(`SELECT id, title, slug, "updatedAt" FROM "Worksheet" WHERE "workspaceId" = $1 ORDER BY "updatedAt" DESC`, [WORKSPACE_ID]);
-        return result.rows;
+        const p = Number(page) || 1;
+        const l = Number(limit) || 10;
+        const offset = (p - 1) * l;
+        const countRes = await this.prisma.client.query(`SELECT COUNT(*) as total FROM "Worksheet" WHERE "workspaceId" = $1`, [WORKSPACE_ID]);
+        const total = parseInt(countRes.rows[0].total);
+        const result = await this.prisma.client.query(`SELECT id, title, slug, "updatedAt" FROM "Worksheet" 
+             WHERE "workspaceId" = $1 
+             ORDER BY "updatedAt" DESC
+             LIMIT $2 OFFSET $3`, [WORKSPACE_ID, l, offset]);
+        return {
+            data: result.rows,
+            meta: {
+                total,
+                page: p,
+                lastPage: Math.ceil(total / l)
+            }
+        };
     }
     async getWorksheet(slug) {
         try {
@@ -112,8 +127,10 @@ __decorate([
 ], WorksheetController.prototype, "createWorksheet", null);
 __decorate([
     (0, common_1.Get)(),
+    __param(0, (0, common_1.Query)('page')),
+    __param(1, (0, common_1.Query)('limit')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], WorksheetController.prototype, "listWorksheets", null);
 __decorate([

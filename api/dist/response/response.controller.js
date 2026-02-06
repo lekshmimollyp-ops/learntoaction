@@ -51,22 +51,33 @@ let ResponseController = class ResponseController {
         }
         return { success: true, responseId: savedId };
     }
-    async getStats(slug) {
+    async getStats(slug, page = 1, limit = 10) {
         const WORKSPACE_ID = '00000000-0000-0000-0000-000000000000';
-        const wsRes = await this.prisma.client.query(`SELECT id, title FROM "Worksheet" WHERE slug = $1 AND "workspaceId" = $2`, [slug, WORKSPACE_ID]);
+        const p = Number(page) || 1;
+        const l = Number(limit) || 10;
+        const offset = (p - 1) * l;
+        const wsRes = await this.prisma.client.query(`SELECT id, title, schema FROM "Worksheet" WHERE slug = $1 AND "workspaceId" = $2`, [slug, WORKSPACE_ID]);
         if (wsRes.rows.length === 0) {
             throw new common_1.NotFoundException('Worksheet not found');
         }
         const worksheet = wsRes.rows[0];
+        const parsedSchema = typeof worksheet.schema === 'string' ? JSON.parse(worksheet.schema) : worksheet.schema;
         const countRes = await this.prisma.client.query(`SELECT COUNT(*) as total FROM "Response" WHERE "worksheetId" = $1`, [worksheet.id]);
+        const total = parseInt(countRes.rows[0].total);
         const recentRes = await this.prisma.client.query(`SELECT id, data, "updatedAt" FROM "Response" 
              WHERE "worksheetId" = $1 
              ORDER BY "updatedAt" DESC 
-             LIMIT 10`, [worksheet.id]);
+             LIMIT $2 OFFSET $3`, [worksheet.id, l, offset]);
         return {
             title: worksheet.title,
-            totalResponses: parseInt(countRes.rows[0].total),
-            recent: recentRes.rows
+            blocks: parsedSchema.blocks || [],
+            totalResponses: total,
+            recent: recentRes.rows,
+            meta: {
+                total: total,
+                page: p,
+                lastPage: Math.ceil(total / l)
+            }
         };
     }
 };
@@ -81,8 +92,10 @@ __decorate([
 __decorate([
     (0, common_1.Get)(':slug/stats'),
     __param(0, (0, common_1.Param)('slug')),
+    __param(1, (0, common_1.Query)('page')),
+    __param(2, (0, common_1.Query)('limit')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, Object, Object]),
     __metadata("design:returntype", Promise)
 ], ResponseController.prototype, "getStats", null);
 exports.ResponseController = ResponseController = __decorate([

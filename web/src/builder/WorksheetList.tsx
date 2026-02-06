@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
+import { Pagination } from '../components/Pagination';
 
 interface WorksheetSummary {
     id: string;
@@ -8,22 +9,46 @@ interface WorksheetSummary {
     updatedAt: string;
 }
 
+interface PaginatedWorksheets {
+    data: WorksheetSummary[];
+    meta: {
+        total: number;
+        page: number;
+        lastPage: number;
+    };
+}
+
 export const WorksheetList = () => {
     const [worksheets, setWorksheets] = useState<WorksheetSummary[]>([]);
     const [loading, setLoading] = useState(true);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
 
-    useEffect(() => {
-        api.get<WorksheetSummary[]>('/worksheets')
+    const fetchWorksheets = (pageNum: number) => {
+        setLoading(true);
+        api.get<PaginatedWorksheets | WorksheetSummary[]>(`/worksheets?page=${pageNum}&limit=10`)
             // @ts-ignore
-            .then(data => {
-                setWorksheets(data);
+            .then(response => {
+                // Handle both old array format (fallback) and new paginated format
+                if (Array.isArray(response)) {
+                    setWorksheets(response);
+                    setTotalPages(1);
+                } else if (response && 'data' in response) {
+                    setWorksheets(response.data);
+                    setTotalPages(response.meta.lastPage);
+                    setPage(response.meta.page);
+                }
                 setLoading(false);
             })
             .catch(err => {
                 console.error(err);
                 setLoading(false);
             });
-    }, []);
+    };
+
+    useEffect(() => {
+        fetchWorksheets(page);
+    }, [page]);
 
     if (loading) return <div className="p-8 text-center text-gray-500">Loading library...</div>;
 
@@ -48,37 +73,45 @@ export const WorksheetList = () => {
                     <a href="/builder" className="text-blue-600 font-medium hover:underline">Create your first one</a>
                 </div>
             ) : (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    <ul className="divide-y divide-gray-100">
-                        {worksheets.map(ws => (
-                            <li key={ws.id} className="p-6 hover:bg-gray-50 transition-colors flex justify-between items-center group">
-                                <div>
-                                    <h3 className="text-lg font-semibold text-gray-800 mb-1">{ws.title}</h3>
-                                    <div className="flex items-center gap-4 text-xs text-gray-500 font-mono">
-                                        <span className="bg-gray-100 px-2 py-1 rounded">/{ws.slug}</span>
-                                        <span>Updated: {new Date(ws.updatedAt).toLocaleDateString()}</span>
+                <>
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <ul className="divide-y divide-gray-100">
+                            {worksheets.map(ws => (
+                                <li key={ws.id} className="p-6 hover:bg-gray-50 transition-colors flex justify-between items-center group">
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-gray-800 mb-1">{ws.title}</h3>
+                                        <div className="flex items-center gap-4 text-xs text-gray-500 font-mono">
+                                            <span className="bg-gray-100 px-2 py-1 rounded">/{ws.slug}</span>
+                                            <span>Updated: {new Date(ws.updatedAt).toLocaleDateString()}</span>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div className="flex items-center gap-3 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                                    <a
-                                        href={`/w/${ws.slug}`}
-                                        target="_blank"
-                                        className="text-gray-600 hover:text-blue-600 font-medium text-sm px-3 py-1 border border-gray-200 rounded hover:border-blue-200"
-                                    >
-                                        Student View ↗
-                                    </a>
-                                    <a
-                                        href={`/analytics/${ws.slug}`}
-                                        className="text-gray-600 hover:text-purple-600 font-medium text-sm px-3 py-1 border border-gray-200 rounded hover:border-purple-200"
-                                    >
-                                        Analytics 📊
-                                    </a>
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
+                                    <div className="flex items-center gap-3 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                        <a
+                                            href={`/w/${ws.slug}`}
+                                            target="_blank"
+                                            className="text-gray-600 hover:text-blue-600 font-medium text-sm px-3 py-1 border border-gray-200 rounded hover:border-blue-200"
+                                        >
+                                            Student View ↗
+                                        </a>
+                                        <a
+                                            href={`/analytics/${ws.slug}`}
+                                            className="text-gray-600 hover:text-purple-600 font-medium text-sm px-3 py-1 border border-gray-200 rounded hover:border-purple-200"
+                                        >
+                                            Analytics 📊
+                                        </a>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    <Pagination
+                        currentPage={page}
+                        totalPages={totalPages}
+                        onPageChange={setPage}
+                    />
+                </>
             )}
         </div>
     );

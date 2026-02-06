@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, BadRequestException, NotFoundException, Query } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { z } from 'zod';
 
@@ -59,12 +59,19 @@ export class ResponseController {
     }
 
     @Get(':slug/stats')
-    async getStats(@Param('slug') slug: string) {
+    async getStats(
+        @Param('slug') slug: string,
+        @Query('page') page = 1,
+        @Query('limit') limit = 10
+    ) {
         const WORKSPACE_ID = '00000000-0000-0000-0000-000000000000';
+        const p = Number(page) || 1;
+        const l = Number(limit) || 10;
+        const offset = (p - 1) * l;
 
-        // 1. Get Worksheet ID
+        // 1. Get Worksheet ID & Schema (Now fetching schema too)
         const wsRes = await this.prisma.client.query(
-            `SELECT id, title FROM "Worksheet" WHERE slug = $1 AND "workspaceId" = $2`,
+            `SELECT id, title, schema FROM "Worksheet" WHERE slug = $1 AND "workspaceId" = $2`,
             [slug, WORKSPACE_ID]
         );
 
@@ -73,25 +80,35 @@ export class ResponseController {
         }
         const worksheet = wsRes.rows[0];
 
+        // Parse Schema to get blocks
+        const parsedSchema = typeof worksheet.schema === 'string' ? JSON.parse(worksheet.schema) : worksheet.schema;
+
         // 2. Get Total Count
         const countRes = await this.prisma.client.query(
             `SELECT COUNT(*) as total FROM "Response" WHERE "worksheetId" = $1`,
             [worksheet.id]
         );
+        const total = parseInt(countRes.rows[0].total);
 
-        // 3. Get Recent Responses
+        // 3. Get All Responses (Paginated)
         const recentRes = await this.prisma.client.query(
             `SELECT id, data, "updatedAt" FROM "Response" 
              WHERE "worksheetId" = $1 
              ORDER BY "updatedAt" DESC 
-             LIMIT 10`,
-            [worksheet.id]
+             LIMIT $2 OFFSET $3`,
+            [worksheet.id, l, offset]
         );
 
         return {
             title: worksheet.title,
-            totalResponses: parseInt(countRes.rows[0].total),
-            recent: recentRes.rows
+            blocks: parsedSchema.blocks || [], // Return blocks so UI knows questions
+            totalResponses: total,
+            recent: recentRes.rows,
+            meta: {
+                total: total,
+                page: p,
+                lastPage: Math.ceil(total / l)
+            }
         };
     }
 }
