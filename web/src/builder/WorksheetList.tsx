@@ -28,15 +28,16 @@ export const WorksheetList = () => {
         setLoading(true);
         api.get<PaginatedWorksheets | WorksheetSummary[]>(`/worksheets?page=${pageNum}&limit=10`)
             // @ts-ignore
-            .then(response => {
+            .then(res => {
+                const response = res as any;
                 // Handle both old array format (fallback) and new paginated format
                 if (Array.isArray(response)) {
                     setWorksheets(response);
                     setTotalPages(1);
-                } else if (response && 'data' in response) {
+                } else if (response && response.data) {
                     setWorksheets(response.data);
-                    setTotalPages(response.meta.lastPage);
-                    setPage(response.meta.page);
+                    setTotalPages(response.meta?.lastPage || 1);
+                    setPage(response.meta?.page || 1);
                 }
                 setLoading(false);
             })

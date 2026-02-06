@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setLoading(false);
     }, []);
 
-    const login = (token: string, user: User) => {
+    const login = (_token: string, user: User) => {
         localStorage.setItem('user', JSON.stringify(user));
         // In a real app, store token in cookie/localStorage and set api header
         // localStorage.setItem('token', token); 

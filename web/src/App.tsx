@@ -27,7 +27,7 @@ const RequireAuth = () => {
           <a href="/builder" className="text-gray-600 hover:text-black">Builder</a>
         </nav>
       </div>
-      <button onClick={() => localStorage.removeItem('user') || window.location.reload()} className="text-sm text-gray-500 hover:text-red-500">Sign Out</button>
+      <button onClick={() => { localStorage.removeItem('user'); window.location.reload(); }} className="text-sm text-gray-500 hover:text-red-500">Sign Out</button>
     </header>
     <main className="flex-1 bg-gray-50">
       <Outlet />

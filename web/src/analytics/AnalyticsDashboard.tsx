@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api";
 import { Pagination } from "../components/Pagination";
@@ -138,7 +138,7 @@ export const AnalyticsDashboard = () => {
 };
 
 // Helper to format different answer types nicely
-function formatAnswer(val: any): JSX.Element | string {
+function formatAnswer(val: any): React.ReactNode | string {
     if (val === undefined || val === null || val === '') return <span className="text-gray-300">-</span>;
     if (typeof val === 'boolean') return val ? 'Yes' : 'No';
     if (typeof val === 'object') return JSON.stringify(val); // Fallback for arrays
