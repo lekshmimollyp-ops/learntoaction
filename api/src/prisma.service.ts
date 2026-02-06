@@ -6,8 +6,12 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     public client: Client;
 
     async onModuleInit() {
+        // Ensure env usage
+        const url = process.env.DATABASE_URL;
+        console.log('DB Connection:', url ? 'Using Environment Variable' : 'MISSING URL');
+
         this.client = new Client({
-            connectionString: 'postgresql://postgres:password@127.0.0.1:5432/learntoaction',
+            connectionString: url,
         });
         await this.client.connect();
     }
